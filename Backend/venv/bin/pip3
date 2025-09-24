@@ -1,4 +1,4 @@
-#!/home/dministratorkemboi/Recipio/venv/bin/python3
+#!/home/dministratorkemboi/Recipio/Backend/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
