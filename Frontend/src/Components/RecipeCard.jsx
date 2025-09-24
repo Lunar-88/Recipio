@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import FavoriteButton from "../FavoriteButton.jsx";
+import FavoritesButton from './FavoritesButton.jsx'
 
 const RecipeCard = ({ recipe, onShowIngredients, isFavorite, onToggleFavorite }) => {
   const [showIngredients, setShowIngredients] = useState(false);

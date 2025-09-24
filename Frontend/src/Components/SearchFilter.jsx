@@ -24,7 +24,7 @@ const SearchFilter = ({ onSearch, filters, onFilterChange }) => {
           <option value="">All Cuisines</option>
           <option value="Italian">Italian</option>
           <option value="Indian">Indian</option>
-          {/* add more */}
+          
         </select>
         <select onChange={e => onFilterChange('dietary', e.target.value)} value={filters.dietary || ''}>
           <option value="">All Diets</option>

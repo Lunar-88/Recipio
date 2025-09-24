@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from '../services/api';
-import RecipeList from '../components/RecipeList';
-import FavoritesButton from '../components/FavoritesButton';
-import Pagination from '../components/Pagination';
+import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from '../Services/API.js';
+import RecipeList from '../Components/RecipeList';
+import Pagination from '../Components/Pagination';
 
 const userId = 'user123';
 
@@ -34,7 +33,7 @@ const Home = () => {
       const favResp = await getFavorites(userId);
       const favIds = new Set(favResp.data.favorites);
       // you might fetch recipe details for these IDs
-      // for simplicity assuming backend supports filter by IDs
+      
       filters = { ids: Array.from(favIds).join(',') };
     } else if (mode === 'new') {
       filters = { sortBy: 'newest' };
