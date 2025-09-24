@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from '../services/api';
-import RecipeList from '../components/RecipeList';
-import FavoriteButton from '../components/FavoriteButton';
-import Pagination from '../components/Pagination';
+import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from '../Services/API.js';
+import RecipeList from '../Components/RecipeList';
+import FavoriteButton from '../Components/FavoriteButton';
+import Pagination from '../Components/Pagination';
 
 const userId = 'user123';
 
@@ -34,7 +35,6 @@ const Home = () => {
       const favResp = await getFavorites(userId);
       const favIds = new Set(favResp.data.favorites);
       // you might fetch recipe details for these IDs
-      // for simplicity assuming backend supports filter by IDs
       filters = { ids: Array.from(favIds).join(',') };
     } else if (mode === 'new') {
       filters = { sortBy: 'newest' };
@@ -66,25 +66,30 @@ const Home = () => {
   return (
     <div>
       <div className="mode-tabs">
-        {['popular','trending','new','favorites'].map(m => (
+        {['popular', 'trending', 'new', 'favorites'].map((m) => (
           <button
             key={m}
-            onClick={() => { setMode(m); setPage(1); }}
+            onClick={() => {
+              setMode(m);
+              setPage(1);
+            }}
             style={{ fontWeight: m === mode ? 'bold' : 'normal' }}
           >
             {m.charAt(0).toUpperCase() + m.slice(1)}
           </button>
         ))}
       </div>
+
       <RecipeList
         recipes={recipes}
         favoritesSet={favorites}
         onToggleFavorite={handleToggleFavorite}
       />
+
       <Pagination
         currentPage={page}
         totalPages={totalPages}
-        onPageChange={p => setPage(p)}
+        onPageChange={(p) => setPage(p)}
       />
     </div>
   );

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from '../services/api';
-import SearchFilter from '../components/SearchFilter';
-import RecipeList from '../components/RecipeList';
-import Pagination from '../components/Pagination';
+import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from './Services/API.js';
+import SearchFilter from './Components/SearchFilter.jsx';
+import RecipeList from './Components/RecipeList.jsx';
+import Pagination from './Components/Pagination.jsx';
 
 const userId = 'user123';  
 

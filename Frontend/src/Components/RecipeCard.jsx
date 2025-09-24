@@ -40,3 +40,4 @@ const RecipeCard = ({ recipe = {}, onShowIngredients, isFavorite, onToggleFavori
 };
 
 export default RecipeCard;
+
