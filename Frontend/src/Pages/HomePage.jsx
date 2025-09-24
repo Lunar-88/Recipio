@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from '../services/api';
 import RecipeList from '../components/RecipeList';
-import FavoritesButton from '../components/FavoritesButton';
+import FavoriteButton from '../components/FavoriteButton';
 import Pagination from '../components/Pagination';
 
 const userId = 'user123';

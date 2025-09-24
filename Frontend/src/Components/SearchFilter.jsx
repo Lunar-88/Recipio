@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 
-const SearchFilter = ({ onSearch, filters, onFilterChange }) => {
+const SearchFilter = ({ onSearch, filters = {}, onFilterChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleSubmit = (e) => {
@@ -26,23 +27,27 @@ const SearchFilter = ({ onSearch, filters, onFilterChange }) => {
           <option value="Indian">Indian</option>
           {/* add more */}
         </select>
+
         <select onChange={e => onFilterChange('dietary', e.target.value)} value={filters.dietary || ''}>
           <option value="">All Diets</option>
           <option value="Vegan">Vegan</option>
           <option value="Vegetarian">Vegetarian</option>
         </select>
+
         <select onChange={e => onFilterChange('difficulty', e.target.value)} value={filters.difficulty || ''}>
           <option value="">Any Difficulty</option>
           <option value="Easy">Easy</option>
           <option value="Medium">Medium</option>
           <option value="Hard">Hard</option>
         </select>
+
         <select onChange={e => onFilterChange('sortBy', e.target.value)} value={filters.sortBy || ''}>
           <option value="">Sort By</option>
           <option value="rating">Rating</option>
           <option value="likes">Likes</option>
           <option value="newest">Newest</option>
         </select>
+
         <select onChange={e => onFilterChange('time', e.target.value)} value={filters.time || ''}>
           <option value="">Any Time</option>
           <option value="15">≤ 15 min</option>
