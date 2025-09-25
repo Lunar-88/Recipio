@@ -1,19 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
-import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from '../Services/API.js';
-import RecipeList from '../Components/RecipeList';
-import FavoriteButton from '../Components/FavoriteButton';
-import Pagination from '../Components/Pagination';
+import React, { useState, useEffect } from "react";
+import {
+  fetchRecipes,
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+} from "../Services/API.js";
+import RecipeList from "../Components/RecipeList";
+import Pagination from "../Components/Pagination";
 
-const userId = 'user123';
+const userId = "user123";
 
 const Home = () => {
-  const [mode, setMode] = useState('popular'); // or 'trending', 'new', 'favorites'
+  const [mode, setMode] = useState("popular"); 
   const [recipes, setRecipes] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 10;
+  const limit = 8;
 
   useEffect(() => {
     loadFavorites();
@@ -30,18 +34,16 @@ const Home = () => {
 
   const loadRecipes = async () => {
     let filters = {};
-    if (mode === 'favorites') {
-      // load all favorites
+    if (mode === "favorites") {
       const favResp = await getFavorites(userId);
       const favIds = new Set(favResp.data.favorites);
-      // you might fetch recipe details for these IDs
-      filters = { ids: Array.from(favIds).join(',') };
-    } else if (mode === 'new') {
-      filters = { sortBy: 'newest' };
-    } else if (mode === 'trending') {
-      filters = { sortBy: 'likes' };
-    } else if (mode === 'popular') {
-      filters = { sortBy: 'rating' };
+      filters = { ids: Array.from(favIds).join(",") };
+    } else if (mode === "new") {
+      filters = { sortBy: "newest" };
+    } else if (mode === "trending") {
+      filters = { sortBy: "likes" };
+    } else if (mode === "popular") {
+      filters = { sortBy: "rating" };
     }
 
     const resp = await fetchRecipes({ page, limit, ...filters });
@@ -63,34 +65,50 @@ const Home = () => {
     }
   };
 
+  const tabs = [
+    { id: "popular", label: "Popular" },
+    { id: "new", label: "New Additions" },
+    { id: "trending", label: "Trending" },
+    { id: "favorites", label: "Favorites" },
+  ];
+
   return (
-    <div>
-      <div className="mode-tabs">
-        {['popular', 'trending', 'new', 'favorites'].map((m) => (
+    <div className="px-6 py-6">
+      {/* Tabs */}
+      <div className="flex gap-6 border-b pb-2 mb-6">
+        {tabs.map((t) => (
           <button
-            key={m}
+            key={t.id}
             onClick={() => {
-              setMode(m);
+              setMode(t.id);
               setPage(1);
             }}
-            style={{ fontWeight: m === mode ? 'bold' : 'normal' }}
+            className={`pb-2 text-lg ${
+              mode === t.id
+                ? "font-semibold text-orange-500 border-b-2 border-orange-500"
+                : "text-gray-500 hover:text-orange-400"
+            }`}
           >
-            {m.charAt(0).toUpperCase() + m.slice(1)}
+            {t.label}
           </button>
         ))}
       </div>
 
+      {/* Recipe Grid */}
       <RecipeList
         recipes={recipes}
         favoritesSet={favorites}
         onToggleFavorite={handleToggleFavorite}
       />
 
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={(p) => setPage(p)}
-      />
+      {/* Pagination */}
+      <div className="flex justify-center mt-8">
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={(p) => setPage(p)}
+        />
+      </div>
     </div>
   );
 };

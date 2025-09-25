@@ -1,21 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { fetchRecipes, getFavorites, addFavorite, removeFavorite } from './Services/API.js';
-import SearchFilter from './Components/SearchFilter.jsx';
-import RecipeList from './Components/RecipeList.jsx';
-import Pagination from './Components/Pagination.jsx';
 
-const userId = 'user123';  
+import React, { useState, useEffect } from "react";
+import {
+  fetchRecipes,
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+} from "../Services/API.js";
+import SearchFilter from "../Components/SearchFilter.jsx";
+import RecipeList from "../Components/RecipeList.jsx";
+import Pagination from "../Components/Pagination.jsx";
+
+const userId = "user123";
 
 const Explore = () => {
   const [recipes, setRecipes] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
   const [filters, setFilters] = useState({
-    q: '',
-    cuisine: '',
-    dietary: '',
-    difficulty: '',
-    time: '',
-    sortBy: ''
+    q: "",
+    cuisine: "",
+    dietary: "",
+    difficulty: "",
+    time: "",
+    sortBy: "",
   });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -56,12 +62,12 @@ const Explore = () => {
   };
 
   const handleSearch = (searchTerm) => {
-    setFilters(f => ({ ...f, q: searchTerm }));
-    setPage(1);  // reset to first page
+    setFilters((f) => ({ ...f, q: searchTerm }));
+    setPage(1); // reset to first page
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters(f => ({ ...f, [field]: value }));
+    setFilters((f) => ({ ...f, [field]: value }));
     setPage(1);
   };
 
@@ -72,22 +78,31 @@ const Explore = () => {
   };
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Search & Filters */}
       <SearchFilter
         onSearch={handleSearch}
         filters={filters}
         onFilterChange={handleFilterChange}
       />
-      <RecipeList
-        recipes={recipes}
-        favoritesSet={favorites}
-        onToggleFavorite={handleToggleFavorite}
-      />
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
+
+      {/* Recipe List */}
+      <div className="mt-6">
+        <RecipeList
+          recipes={recipes}
+          favoritesSet={favorites}
+          onToggleFavorite={handleToggleFavorite}
+        />
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-8 flex justify-center">
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      </div>
     </div>
   );
 };
