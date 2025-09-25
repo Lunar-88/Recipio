@@ -1,8 +1,9 @@
 
-from flask import Blueprint, request, jsonify
-import uuid
-from extensions import db          # ✅ avoids circular import
-from models import Media           # safe to import models here
+from flask import Blueprint, request, jsonify, send_file
+from bson import ObjectId
+import io
+
+from extensions import fs, mongo_db
 
 media_bp = Blueprint("media", __name__, url_prefix="/api/media")
 
@@ -15,39 +16,30 @@ def upload_media():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
-    # Generate unique ID for this media
-    media_id = str(uuid.uuid4())
+    # Save to GridFS
+    file_id = fs.put(file, filename=file.filename, content_type=file.content_type)
 
-    # TODO: Save to S3 or disk later — for now we fake keys
-    sizes = {
-        "thumb": f"{media_id}_thumb.jpg",
-        "medium": f"{media_id}_medium.jpg",
-        "original": f"{media_id}_original.jpg"
-    }
+    # Optionally store metadata in MongoDB (separate collection)
+    mongo_db.media_metadata.insert_one({
+        "_id": file_id,
+        "filename": file.filename,
+        "content_type": file.content_type
+    })
 
-    # Save record to database
-    media = Media(id=media_id, s3_key=sizes["original"], sizes=sizes)
-    db.session.add(media)
-    db.session.commit()
-
-    return jsonify({"id": media_id, "sizes": sizes}), 201
+    return jsonify({"id": str(file_id)}), 201
 
 
 # -------------------------
-# Get Signed URL
+# Get Media
 # -------------------------
-@media_bp.route("/<string:media_id>/signed-url", methods=["GET"])
-def get_signed_url(media_id):
-    size = request.args.get("size", "thumb")
-
-    media = Media.query.get(media_id)
-    if not media:
-        return jsonify({"error": "Media not found"}), 404
-
-    key = media.sizes.get(size)
-    if not key:
-        return jsonify({"error": f"Size '{size}' not found"}), 404
-
-    # Dummy URL for now — replace with AWS S3 signed URL later
-    url = f"http://localhost:5000/static/{key}"
-    return jsonify({"url": url}), 200
+@media_bp.route("/<string:file_id>", methods=["GET"])
+def get_media(file_id):
+    try:
+        grid_out = fs.get(ObjectId(file_id))
+        return send_file(
+            io.BytesIO(grid_out.read()),
+            mimetype=grid_out.content_type,
+            download_name=grid_out.filename
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404

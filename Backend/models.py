@@ -33,12 +33,17 @@ class Recipe(db.Model):
     status = db.Column(db.String(20), default="draft")  # draft vs published
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # ✅ New column to directly reference one media file
+    media_id = db.Column(db.String, db.ForeignKey("media.id"), nullable=True)
+
     # Relationships
     ingredients = db.relationship("RecipeIngredient", backref="recipe", cascade="all, delete-orphan")
     instructions = db.relationship("Instruction", backref="recipe", cascade="all, delete-orphan")
     likes = db.relationship("Like", backref="recipe", cascade="all, delete-orphan")
     ratings = db.relationship("Rating", backref="recipe", cascade="all, delete-orphan")
-    media = db.relationship("Media", backref="recipe", cascade="all, delete-orphan")
+
+    # ✅ One-to-one relation to Media
+    media = db.relationship("Media", backref="recipe", foreign_keys=[media_id], uselist=False)
 
     # ------------------
     # Methods
@@ -106,4 +111,3 @@ class Rating(db.Model):
     user_id = db.Column(db.Integer, nullable=False)
     stars = db.Column(db.Integer, nullable=False)  # 1–5
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-

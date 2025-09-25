@@ -12,30 +12,35 @@ from extensions import db  # import once at the top
 # ---------------------
 load_dotenv()
 
+
 def create_app():
     app = Flask(__name__)
 
     # ---------------------
-    # CORS
+    # CORS (allow local dev origins)
     # ---------------------
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": ["http://localhost:5173", "http://127.0.0.1:5173"]
-        }
-    })
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:5174",
+            "http://127.0.0.1:5174",
+        ]}},
+        supports_credentials=True  # important to include headers for cookies/auth
+    )
 
     # ---------------------
     # Config
     # ---------------------
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-       'DATABASE_URL', 'sqlite:///recipio.db'
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL", "sqlite:///recipio.db"
     )
-
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Optional AWS Config
-    app.config['AWS_REGION'] = os.getenv('AWS_REGION')
-    app.config['S3_BUCKET'] = os.getenv('S3_BUCKET')
+    app.config["AWS_REGION"] = os.getenv("AWS_REGION")
+    app.config["S3_BUCKET"] = os.getenv("S3_BUCKET")
 
     # ---------------------
     # Initialize extensions
@@ -77,3 +82,4 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True, port=5000)
+

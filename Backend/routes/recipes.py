@@ -1,10 +1,10 @@
-
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func, desc, or_
 from extensions import db
 from models import Recipe, RecipeIngredient, Instruction, Chef, Like, Rating
 
 recipes_bp = Blueprint("recipes", __name__, url_prefix="/api/recipes")
+
 
 # ------------------
 # CRUD for Recipes
@@ -14,32 +14,40 @@ recipes_bp = Blueprint("recipes", __name__, url_prefix="/api/recipes")
 @recipes_bp.route("", methods=["POST"])
 def create_recipe():
     data = request.json
-    if not data.get("title") or not data.get("chef_id") or not data.get("ingredients") or not data.get("instructions"):
+    if not data.get("title") or not data.get("chef_id"):
         return jsonify({"error": "Missing required fields"}), 400
 
-    recipe = Recipe(
-        title=data["title"],
-        description=data.get("description", ""),
-        chef_id=data["chef_id"],
-        cuisine=data.get("cuisine"),
-        dietary=data.get("dietary", []),
-        cook_time_minutes=data.get("cook_time_minutes"),
-        difficulty=data.get("difficulty", "easy"),
-        status="draft"
-    )
-    db.session.add(recipe)
-    db.session.commit()
+    try:
+        recipe = Recipe(
+            title=data["title"],
+            description=data.get("description", ""),
+            chef_id=data["chef_id"],
+            cuisine=data.get("cuisine"),
+            dietary=data.get("dietary", []),
+            cook_time_minutes=data.get("cook_time_minutes"),
+            difficulty=data.get("difficulty", "easy"),
+            status="draft",
+            media_id=data.get("media_id")  # ✅ support image
+        )
+        db.session.add(recipe)
+        db.session.commit()
 
-    # Add ingredients
-    for ing in data["ingredients"]:
-        db.session.add(RecipeIngredient(recipe_id=recipe.id, ingredient=ing))
-    
-    # Add instructions
-    for idx, step in enumerate(data["instructions"], start=1):
-        db.session.add(Instruction(recipe_id=recipe.id, step_number=idx, description=step))
-    
-    db.session.commit()
-    return jsonify({"message": "Recipe created", "id": recipe.id}), 201
+        # ✅ Handle ingredients properly
+        for ing in data.get("ingredients", []):
+            name = ing.get("ingredient") if isinstance(ing, dict) else str(ing)
+            db.session.add(RecipeIngredient(recipe_id=recipe.id, ingredient=name))
+
+        # ✅ Handle instructions properly
+        for idx, step in enumerate(data.get("instructions", []), start=1):
+            description = step.get("description") if isinstance(step, dict) else str(step)
+            db.session.add(Instruction(recipe_id=recipe.id, step_number=idx, description=description))
+
+        db.session.commit()
+        return jsonify({"message": "Recipe created", "id": recipe.id}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 # Get recipe by ID
@@ -59,7 +67,9 @@ def get_recipe(recipe_id):
         "instructions": [s.description for s in sorted(recipe.instructions, key=lambda x: x.step_number)],
         "likes_count": len(recipe.likes),
         "avg_rating": (sum(r.stars for r in recipe.ratings)/len(recipe.ratings)) if recipe.ratings else 0,
-        "popularity_score": recipe.popularity_score
+        "popularity_score": recipe.popularity_score,
+        "media_id": recipe.media_id,  # ✅ return media ID
+        "image_url": f"/api/media/{recipe.media_id}" if recipe.media_id else None  # ✅ usable URL
     })
 
 
@@ -75,17 +85,20 @@ def update_recipe(recipe_id):
     recipe.dietary = data.get("dietary", recipe.dietary)
     recipe.cook_time_minutes = data.get("cook_time_minutes", recipe.cook_time_minutes)
     recipe.difficulty = data.get("difficulty", recipe.difficulty)
+    recipe.media_id = data.get("media_id", recipe.media_id)
 
     if "ingredients" in data:
         RecipeIngredient.query.filter_by(recipe_id=recipe.id).delete()
         for ing in data["ingredients"]:
-            db.session.add(RecipeIngredient(recipe_id=recipe.id, ingredient=ing))
-    
+            name = ing.get("ingredient") if isinstance(ing, dict) else str(ing)
+            db.session.add(RecipeIngredient(recipe_id=recipe.id, ingredient=name))
+
     if "instructions" in data:
         Instruction.query.filter_by(recipe_id=recipe.id).delete()
         for idx, step in enumerate(data["instructions"], start=1):
-            db.session.add(Instruction(recipe_id=recipe.id, step_number=idx, description=step))
-    
+            description = step.get("description") if isinstance(step, dict) else str(step)
+            db.session.add(Instruction(recipe_id=recipe.id, step_number=idx, description=description))
+
     db.session.commit()
     return jsonify({"message": "Recipe updated"})
 
@@ -177,6 +190,8 @@ def search_recipes():
             "dietary": r.dietary,
             "cook_time_minutes": r.cook_time_minutes,
             "difficulty": r.difficulty,
-            "created_at": r.created_at.isoformat()
+            "created_at": r.created_at.isoformat(),
+            "media_id": r.media_id,
+            "image_url": f"/api/media/{r.media_id}" if r.media_id else None
         } for r in results]
     })
