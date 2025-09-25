@@ -9,59 +9,81 @@ import {
 import RecipeList from "../Components/RecipeList";
 import Pagination from "../Components/Pagination";
 
-const userId = "user123";
+const userId = 123; // numeric ID to match Flask route
 
 const Home = () => {
-  const [mode, setMode] = useState("popular"); 
+  const [mode, setMode] = useState("popular");
   const [recipes, setRecipes] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 8;
 
+  // Load favorites on mount
   useEffect(() => {
     loadFavorites();
   }, []);
 
+  // Reload recipes when mode or page changes
   useEffect(() => {
     loadRecipes();
   }, [mode, page]);
 
   const loadFavorites = async () => {
-    const resp = await getFavorites(userId);
-    setFavorites(new Set(resp.data.favorites));
+    try {
+      const resp = await getFavorites(userId);
+      setFavorites(new Set(resp.favorites || []));
+    } catch (err) {
+      console.error("Failed to load favorites:", err);
+      setFavorites(new Set());
+    }
   };
 
   const loadRecipes = async () => {
-    let filters = {};
-    if (mode === "favorites") {
-      const favResp = await getFavorites(userId);
-      const favIds = new Set(favResp.data.favorites);
-      filters = { ids: Array.from(favIds).join(",") };
-    } else if (mode === "new") {
-      filters = { sortBy: "newest" };
-    } else if (mode === "trending") {
-      filters = { sortBy: "likes" };
-    } else if (mode === "popular") {
-      filters = { sortBy: "rating" };
-    }
+    try {
+      let filters = { page, per_page: limit };
 
-    const resp = await fetchRecipes({ page, limit, ...filters });
-    setRecipes(resp.data.data);
-    setTotalPages(resp.data.totalPages);
+      if (mode === "favorites") {
+        // Show only favorite recipes
+        const favResp = await getFavorites(userId);
+        const favIds = favResp.favorites || [];
+        if (favIds.length === 0) {
+          setRecipes([]);
+          setTotalPages(1);
+          return;
+        }
+        filters.ids = favIds.join(","); // Ensure backend can filter by IDs
+      } else if (mode === "new") {
+        filters.sort = "new";
+      } else if (mode === "trending") {
+        filters.sort = "trending";
+      } else if (mode === "popular") {
+        filters.sort = "popular";
+      }
+
+      const resp = await fetchRecipes(filters);
+      setRecipes(resp.results || []);
+      setTotalPages(Math.ceil((resp.total || resp.results.length) / limit));
+    } catch (err) {
+      console.error("Failed to load recipes:", err);
+      setRecipes([]);
+      setTotalPages(1);
+    }
   };
 
   const handleToggleFavorite = async (recipeId) => {
-    if (favorites.has(recipeId)) {
-      await removeFavorite(userId, recipeId);
+    try {
       const newFav = new Set(favorites);
-      newFav.delete(recipeId);
+      if (favorites.has(recipeId)) {
+        await removeFavorite(userId, recipeId);
+        newFav.delete(recipeId);
+      } else {
+        await addFavorite(userId, recipeId);
+        newFav.add(recipeId);
+      }
       setFavorites(newFav);
-    } else {
-      await addFavorite(userId, recipeId);
-      const newFav = new Set(favorites);
-      newFav.add(recipeId);
-      setFavorites(newFav);
+    } catch (err) {
+      console.error("Failed to toggle favorite:", err);
     }
   };
 

@@ -4,7 +4,7 @@ import { UploadCloud } from "lucide-react";
 const ImageUpload = ({ image, setImage }) => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) setImage(URL.createObjectURL(file));
+    if (file) setImage(file); // send the actual File object to parent
   };
 
   return (
@@ -15,9 +15,18 @@ const ImageUpload = ({ image, setImage }) => {
         <span className="text-gray-500">Drag & drop or click to upload</span>
         <input type="file" className="hidden" onChange={handleImageUpload} />
       </label>
-      {image && <img src={image} alt="preview" className="mt-2 w-48 h-48 object-cover rounded" />}
+
+      {image && typeof image === "object" && (
+        <img
+          src={URL.createObjectURL(image)} // preview the selected file
+          alt="preview"
+          className="mt-2 w-48 h-48 object-cover rounded"
+        />
+      )}
     </div>
   );
 };
 
 export default ImageUpload;
+
+

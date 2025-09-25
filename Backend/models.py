@@ -1,13 +1,26 @@
 
-from app import db
+from extensions import db
 from datetime import datetime
+
+# ------------------
+# Chef Model
+# ------------------
+class Chef(db.Model):
+    __tablename__ = "chefs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+
+    # Relationships
+    recipes = db.relationship("Recipe", backref="chef", cascade="all, delete-orphan")
+
 
 # ------------------
 # Recipe + Metadata
 # ------------------
 class Recipe(db.Model):
     __tablename__ = "recipes"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -25,7 +38,11 @@ class Recipe(db.Model):
     instructions = db.relationship("Instruction", backref="recipe", cascade="all, delete-orphan")
     likes = db.relationship("Like", backref="recipe", cascade="all, delete-orphan")
     ratings = db.relationship("Rating", backref="recipe", cascade="all, delete-orphan")
+    media = db.relationship("Media", backref="recipe", cascade="all, delete-orphan")
 
+    # ------------------
+    # Methods
+    # ------------------
     def likes_count(self):
         return len(self.likes)
 
@@ -41,7 +58,7 @@ class Recipe(db.Model):
 
 class RecipeIngredient(db.Model):
     __tablename__ = "recipe_ingredients"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id"), nullable=False)
     ingredient = db.Column(db.String(200), nullable=False)
@@ -49,7 +66,7 @@ class RecipeIngredient(db.Model):
 
 class Instruction(db.Model):
     __tablename__ = "instructions"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id"), nullable=False)
     step_number = db.Column(db.Integer, nullable=False)
@@ -57,11 +74,24 @@ class Instruction(db.Model):
 
 
 # ------------------
+# Media Model
+# ------------------
+class Media(db.Model):
+    __tablename__ = "media"
+
+    id = db.Column(db.String, primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id"))
+    s3_key = db.Column(db.String)
+    sizes = db.Column(db.PickleType)  # or JSONB if using Postgres
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ------------------
 # Engagement Models
 # ------------------
 class Like(db.Model):
     __tablename__ = "likes"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id"), nullable=False)
     user_id = db.Column(db.Integer, nullable=False)  # replace with FK when user model is ready
@@ -70,9 +100,10 @@ class Like(db.Model):
 
 class Rating(db.Model):
     __tablename__ = "ratings"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id"), nullable=False)
     user_id = db.Column(db.Integer, nullable=False)
     stars = db.Column(db.Integer, nullable=False)  # 1–5
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+

@@ -10,7 +10,7 @@ import SearchFilter from "../Components/SearchFilter.jsx";
 import RecipeList from "../Components/RecipeList.jsx";
 import Pagination from "../Components/Pagination.jsx";
 
-const userId = "user123";
+const userId = 123; // numeric ID to match Flask route
 
 const Explore = () => {
   const [recipes, setRecipes] = useState([]);
@@ -27,37 +27,58 @@ const Explore = () => {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
 
+  // Load favorites on mount
   useEffect(() => {
     loadFavorites();
   }, []);
 
+  // Reload recipes whenever page or filters change
   useEffect(() => {
     loadRecipes();
   }, [page, filters]);
 
   const loadRecipes = async () => {
-    const params = { page, limit, ...filters };
-    const resp = await fetchRecipes(params);
-    setRecipes(resp.data.data);
-    setTotalPages(resp.data.totalPages);
+    try {
+      const params = { page, limit, ...filters };
+      const resp = await fetchRecipes(params);
+
+      // Ensure safe defaults
+      const data = resp?.results || [];
+      const total = resp?.total || data.length;
+
+      setRecipes(data);
+      setTotalPages(Math.ceil(total / limit));
+    } catch (err) {
+      console.error("Failed to load recipes:", err);
+      setRecipes([]);
+      setTotalPages(1);
+    }
   };
 
   const loadFavorites = async () => {
-    const resp = await getFavorites(userId);
-    setFavorites(new Set(resp.data.favorites));
+    try {
+      const resp = await getFavorites(userId);
+      const favs = resp?.favorites || [];
+      setFavorites(new Set(favs));
+    } catch (err) {
+      console.error("Failed to load favorites:", err);
+      setFavorites(new Set());
+    }
   };
 
   const handleToggleFavorite = async (recipeId) => {
-    if (favorites.has(recipeId)) {
-      await removeFavorite(userId, recipeId);
+    try {
       const newFav = new Set(favorites);
-      newFav.delete(recipeId);
+      if (favorites.has(recipeId)) {
+        await removeFavorite(userId, recipeId);
+        newFav.delete(recipeId);
+      } else {
+        await addFavorite(userId, recipeId);
+        newFav.add(recipeId);
+      }
       setFavorites(newFav);
-    } else {
-      await addFavorite(userId, recipeId);
-      const newFav = new Set(favorites);
-      newFav.add(recipeId);
-      setFavorites(newFav);
+    } catch (err) {
+      console.error("Failed to toggle favorite:", err);
     }
   };
 
