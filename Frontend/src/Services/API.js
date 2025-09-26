@@ -1,4 +1,3 @@
-
 // API.js
 const API_BASE = 'http://localhost:5000/api'; // Flask backend
 
@@ -74,23 +73,49 @@ export const removeFavorite = async (userId, recipeId) => {
 };
 
 // --------------------
-// Media / Images
+// Media / Images (Updated for Cloudinary)
 // --------------------
 export const uploadImage = async (file) => {
   const formData = new FormData();
-  formData.append('file', file);
+  // 💡 CRITICAL FIX: The key must be 'image' to match request.files.get("image") in Flask
+  formData.append('image', file); 
 
   const response = await fetch(`${API_BASE}/media/upload`, {
     method: 'POST',
     body: formData,
   });
 
-  if (!response.ok) throw new Error('Image upload failed');
-  return await response.json(); // returns { id, sizes }
+  if (!response.ok) {
+    // Attempt to get error message from backend for better debugging
+    const errorData = await response.json();
+    throw new Error(`Image upload failed: ${errorData.error || response.statusText}`);
+  }
+  
+  // Returns { id: public_id, url: secure_url }
+  return await response.json(); 
 };
 
-export const getMediaSignedUrl = async (mediaId, size = 'thumb') => {
-  const response = await fetch(`${API_BASE}/media/${mediaId}/signed-url?size=${size}`);
-  if (!response.ok) throw new Error('Failed to get signed URL');
-  return await response.json(); // returns { url }
+/**
+ * 🗑️ REMOVED: This function is obsolete. 
+ * With Cloudinary, the frontend uses the direct URL returned by uploadImage.
+ *
+ * export const getMediaSignedUrl = async (mediaId, size = 'thumb') => {
+ * // ... code removed
+ * };
+ */
+
+// --------------------
+// Cloudinary Deletion Utility (New)
+// --------------------
+export const deleteImage = async (publicId) => {
+  // Uses the DELETE /api/media/<public_id> route
+  const response = await fetch(`${API_BASE}/media/${publicId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+     const errorData = await response.json();
+     throw new Error(`Image deletion failed: ${errorData.error || response.statusText}`);
+  }
+  return await response.json();
 };

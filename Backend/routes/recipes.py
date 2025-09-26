@@ -2,9 +2,27 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy import func, desc, or_
 from extensions import db, fs
 from models import Recipe, RecipeIngredient, Instruction, Chef, Like, Rating
+import os
+from cloudinary.utils import cloudinary_url 
+# 💡 Assuming you import cloudinary's uploader for the DELETE route
+from cloudinary.uploader import destroy 
 
 recipes_bp = Blueprint("recipes", __name__, url_prefix="/api/recipes")
 
+# --- HELPER FUNCTION ---
+def get_cloudinary_url(public_id):
+    """Constructs the full, secure Cloudinary URL from the public ID."""
+    if not public_id:
+        return None
+    
+    # Ensure CLOUDINARY_CLOUD_NAME is loaded in your app's environment
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    if not cloud_name:
+        return None 
+        
+    # secure=True ensures HTTPS URL
+    full_url, options = cloudinary_url(public_id, cloud_name=cloud_name, secure=True)
+    return full_url
 
 # ------------------
 # Create recipe (draft by default)
@@ -25,7 +43,7 @@ def create_recipe():
             cook_time_minutes=data.get("cook_time_minutes"),
             difficulty=data.get("difficulty", "easy"),
             status="draft",
-            media_id=data.get("media_id")  # support image
+            media_id=data.get("media_id")  # Cloudinary public ID
         )
         db.session.add(recipe)
         db.session.commit()
@@ -69,7 +87,8 @@ def get_recipe(recipe_id):
         "avg_rating": (sum(r.stars for r in recipe.ratings)/len(recipe.ratings)) if recipe.ratings else 0,
         "popularity_score": recipe.popularity_score,
         "media_id": recipe.media_id,
-        "image_url": f"/api/media/{recipe.media_id}" if recipe.media_id else None
+        # 💡 FIX 1: Use helper function for the full Cloudinary URL
+        "image_url": get_cloudinary_url(recipe.media_id)
     })
 
 
@@ -120,12 +139,15 @@ def delete_recipe(recipe_id):
         Like.query.filter_by(recipe_id=recipe.id).delete()
         Rating.query.filter_by(recipe_id=recipe.id).delete()
 
-        # Delete media in GridFS if exists
-        if recipe.media_id and fs:
+        # Delete media in Cloudinary
+        if recipe.media_id:
             try:
-                fs.delete(recipe.media_id)
+                # 💡 FIX 3: Use the Cloudinary SDK directly for deletion. 
+                # The public_id is stored in recipe.media_id
+                destroy(recipe.media_id)
             except Exception as e:
-                print(f"⚠️ Could not delete media {recipe.media_id}: {e}")
+                # Cloudinary may raise an exception if the asset doesn't exist
+                print(f"⚠️ Could not delete Cloudinary media {recipe.media_id}: {e}")
 
         # Delete recipe itself
         db.session.delete(recipe)
@@ -163,9 +185,12 @@ def search_recipes():
     sort = request.args.get('sort', 'new')
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 20, type=int), 100)
+    # Add user_id filter if needed for 'favorites' mode (see frontend discussion)
+    # user_id = request.args.get('user_id', type=int) 
 
     query = Recipe.query
-
+    
+    # ... (filtering logic remains the same) ...
     if chef_name:
         query = query.join(Chef).filter(func.lower(Chef.name) == chef_name.lower())
 
@@ -221,6 +246,7 @@ def search_recipes():
             "difficulty": r.difficulty,
             "created_at": r.created_at.isoformat(),
             "media_id": r.media_id,
-            "image_url": f"/api/media/{r.media_id}" if r.media_id else None
+            # 💡 FIX 2: Use helper function for the full Cloudinary URL
+            "image_url": get_cloudinary_url(r.media_id) 
         } for r in results]
     })

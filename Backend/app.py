@@ -1,11 +1,13 @@
+# app.py
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 
-from extensions import db, init_mongo  # ✅ import init_mongo
+import cloudinary  # 💡 Import Cloudinary
+from extensions import db, init_mongo
 
 # ---------------------
 # Load environment
@@ -27,7 +29,7 @@ def create_app():
             "http://localhost:5175",
             "http://127.0.0.1:5175",
         ]}},
-        supports_credentials=True  # important to include headers for cookies/auth
+        supports_credentials=True
     )
 
     # ---------------------
@@ -38,9 +40,17 @@ def create_app():
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Optional AWS Config
+    # Optional AWS Config (Kept but not used for current image solution)
     app.config["AWS_REGION"] = os.getenv("AWS_REGION")
     app.config["S3_BUCKET"] = os.getenv("S3_BUCKET")
+
+    # 💡 Cloudinary Configuration
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+        api_key=os.getenv("CLOUDINARY_API_KEY"),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+        secure=True
+    )
 
     # ---------------------
     # Initialize extensions
@@ -48,7 +58,7 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
 
-    # ✅ Initialize MongoDB + GridFS
+    # ✅ Initialize MongoDB
     init_mongo(app)
 
     # ---------------------
@@ -62,11 +72,15 @@ def create_app():
     from routes.recipes import recipes_bp
     from routes.engagement import engagement_bp
     from routes.favorites import favorites_bp
-    from routes.media import media_bp
+    
+    # 💡 CORRECTED IMPORT: Import the consistently named blueprint object
+    from routes.media import media_bp 
 
     app.register_blueprint(recipes_bp, url_prefix="/api/recipes")
     app.register_blueprint(engagement_bp, url_prefix="/api/engagement")
     app.register_blueprint(favorites_bp, url_prefix="/api/favorites")
+    
+    # 💡 Register the media blueprint at /api/media
     app.register_blueprint(media_bp, url_prefix="/api/media")
 
     # ---------------------

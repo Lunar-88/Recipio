@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import IngredientInput from "../Components/IngredientInput.jsx";
 import InstructionStep from "../Components/InstructionStep.jsx";
@@ -31,21 +30,33 @@ const CreateRecipeForm = () => {
       // 1️⃣ Upload image first if exists
       if (image) {
         const formData = new FormData();
-        formData.append("file", image);
+        // 💡 FIX: Change "file" to "image" to match the Flask backend's request.files.get("image")
+        formData.append("image", image); // <--- THIS IS THE CRITICAL CHANGE
 
         const res = await fetch("http://localhost:5000/api/media/upload", {
           method: "POST",
           body: formData,
+          // NOTE: DO NOT set Content-Type header when using FormData, 
+          // the browser sets it automatically to multipart/form-data.
         });
 
-        if (!res.ok) throw new Error("Image upload failed");
+        // The backend returns a 400 because it fails this check:
+        // file_to_upload = request.files.get("image")
+        // if not file_to_upload: return 400
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(`Image upload failed: ${errData.error}`);
+        }
+        
         const data = await res.json();
-        mediaId = data.id; // backend Media.id type
+        // data.id is the Cloudinary public_id
+        mediaId = data.id; 
       }
 
       // 2️⃣ Format ingredients for backend
       const formattedIngredients = ingredients.map((i) => ({
-        ingredient: i.name, // matches RecipeIngredient model
+        ingredient: i.name, 
       }));
 
       // 3️⃣ Format instructions for backend
@@ -67,7 +78,7 @@ const CreateRecipeForm = () => {
           chef_id: 1, // replace with real user ID
           ingredients: formattedIngredients,
           instructions: formattedSteps,
-          media_id: mediaId, // optional
+          media_id: mediaId, // Cloudinary public_id
         }),
       });
 
