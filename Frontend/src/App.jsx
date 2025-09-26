@@ -9,7 +9,7 @@ function App() {
 
   return (
     <div>
-      <nav className="text-center justify-center flex gap-6 p-4 bg-gray-100 font-semibold text-lg text-gray-700 border-transparent rounded-2xl">
+      <nav className="text-center justify-center flex gap-6 p-4 bg-orange-400 font-bold text-xl text-gray-700">
         <button onClick={() => setPage('home')}>Home</button>
         <button onClick={() => setPage('explore')}>Explore</button>
         <button onClick={() => setPage('create')}>Create Recipe</button>
