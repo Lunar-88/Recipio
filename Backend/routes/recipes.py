@@ -1,16 +1,14 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func, desc, or_
-from extensions import db
+from extensions import db, fs
 from models import Recipe, RecipeIngredient, Instruction, Chef, Like, Rating
 
 recipes_bp = Blueprint("recipes", __name__, url_prefix="/api/recipes")
 
 
 # ------------------
-# CRUD for Recipes
-# ------------------
-
 # Create recipe (draft by default)
+# ------------------
 @recipes_bp.route("", methods=["POST"])
 def create_recipe():
     data = request.json
@@ -27,17 +25,17 @@ def create_recipe():
             cook_time_minutes=data.get("cook_time_minutes"),
             difficulty=data.get("difficulty", "easy"),
             status="draft",
-            media_id=data.get("media_id")  # ✅ support image
+            media_id=data.get("media_id")  # support image
         )
         db.session.add(recipe)
         db.session.commit()
 
-        # ✅ Handle ingredients properly
+        # Handle ingredients
         for ing in data.get("ingredients", []):
             name = ing.get("ingredient") if isinstance(ing, dict) else str(ing)
             db.session.add(RecipeIngredient(recipe_id=recipe.id, ingredient=name))
 
-        # ✅ Handle instructions properly
+        # Handle instructions
         for idx, step in enumerate(data.get("instructions", []), start=1):
             description = step.get("description") if isinstance(step, dict) else str(step)
             db.session.add(Instruction(recipe_id=recipe.id, step_number=idx, description=description))
@@ -50,7 +48,9 @@ def create_recipe():
         return jsonify({"error": str(e)}), 500
 
 
+# ------------------
 # Get recipe by ID
+# ------------------
 @recipes_bp.route("/<int:recipe_id>", methods=["GET"])
 def get_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
@@ -68,12 +68,14 @@ def get_recipe(recipe_id):
         "likes_count": len(recipe.likes),
         "avg_rating": (sum(r.stars for r in recipe.ratings)/len(recipe.ratings)) if recipe.ratings else 0,
         "popularity_score": recipe.popularity_score,
-        "media_id": recipe.media_id,  # ✅ return media ID
-        "image_url": f"/api/media/{recipe.media_id}" if recipe.media_id else None  # ✅ usable URL
+        "media_id": recipe.media_id,
+        "image_url": f"/api/media/{recipe.media_id}" if recipe.media_id else None
     })
 
 
+# ------------------
 # Update recipe
+# ------------------
 @recipes_bp.route("/<int:recipe_id>", methods=["PUT"])
 def update_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
@@ -103,16 +105,41 @@ def update_recipe(recipe_id):
     return jsonify({"message": "Recipe updated"})
 
 
-# Delete recipe
+# ------------------
+# Delete recipe (full cleanup)
+# ------------------
 @recipes_bp.route("/<int:recipe_id>", methods=["DELETE"])
 def delete_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    db.session.delete(recipe)
-    db.session.commit()
-    return jsonify({"message": "Recipe deleted"})
+    try:
+        # Delete related ingredients and instructions
+        RecipeIngredient.query.filter_by(recipe_id=recipe.id).delete()
+        Instruction.query.filter_by(recipe_id=recipe.id).delete()
+
+        # Delete likes and ratings
+        Like.query.filter_by(recipe_id=recipe.id).delete()
+        Rating.query.filter_by(recipe_id=recipe.id).delete()
+
+        # Delete media in GridFS if exists
+        if recipe.media_id and fs:
+            try:
+                fs.delete(recipe.media_id)
+            except Exception as e:
+                print(f"⚠️ Could not delete media {recipe.media_id}: {e}")
+
+        # Delete recipe itself
+        db.session.delete(recipe)
+        db.session.commit()
+        return jsonify({"message": "Recipe and all associated data deleted"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
+# ------------------
 # Publish recipe
+# ------------------
 @recipes_bp.route("/<int:recipe_id>/publish", methods=["PATCH"])
 def publish_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
@@ -121,7 +148,9 @@ def publish_recipe(recipe_id):
     return jsonify({"message": "Recipe published"})
 
 
+# ------------------
 # Search recipes
+# ------------------
 @recipes_bp.route("/search", methods=["GET"])
 def search_recipes():
     q = request.args.get('q')
