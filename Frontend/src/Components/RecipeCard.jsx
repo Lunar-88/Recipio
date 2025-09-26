@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import FavoritesButton from "./FavoritesButton.jsx";
 
@@ -7,14 +6,34 @@ const RecipeCard = ({
   onShowIngredients,
   isFavorite,
   onToggleFavorite,
+  onDelete, // callback prop for deletion
 }) => {
   const [showIngredients, setShowIngredients] = useState(false);
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this recipe?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/recipes/${recipe.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete recipe");
+
+      onDelete?.(recipe.id); // notify parent to remove from UI
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
       {/* Image */}
       <img
-        src={recipe.imageUrl || "/placeholder.jpg"}
+        src={
+          recipe.media_id
+            ? `http://localhost:5000/api/media/${recipe.media_id}`
+            : "/placeholder.jpg"
+        }
         alt={recipe.title || "Untitled Recipe"}
         className="w-full h-48 object-cover"
       />
@@ -45,12 +64,18 @@ const RecipeCard = ({
           </ul>
         )}
 
-        {/* Favorite Button */}
-        <div className="mt-auto">
+        {/* Buttons */}
+        <div className="mt-auto flex gap-2">
           <FavoritesButton
             isFavorite={isFavorite}
             onToggle={() => onToggleFavorite?.(recipe.id)}
           />
+          <button
+            onClick={handleDelete}
+            className="text-sm text-red-600 hover:underline"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -58,3 +83,4 @@ const RecipeCard = ({
 };
 
 export default RecipeCard;
+
