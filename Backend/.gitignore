@@ -1,0 +1,7 @@
+# Python files to ignore
+__pycache__/
+*.pyc
+
+# Environment and Data to ignore
+.env
+.DS_Store
