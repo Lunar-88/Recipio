@@ -1,64 +1,54 @@
 
 from flask import Blueprint, request, jsonify
-from app import db
-from models import Recipe, Like, Rating
+from extensions import db                # ✅ import db here
+from models import Like, Rating, Recipe  # keep models import
 
-engagement_bp = Blueprint("engagement", __name__, url_prefix="/api/recipes")
+engagement_bp = Blueprint("engagement", __name__, url_prefix="/api/engagement")
 
-# Mock user ID (replace with real auth later)
-def get_current_user_id():
-    return 1  # hardcoded for now
+# -------------------------
+# Like a recipe
+# -------------------------
+@engagement_bp.route("/likes/<int:recipe_id>", methods=["POST"])
+def like_recipe(recipe_id):
+    data = request.json or {}
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
 
-
-# Like/unlike recipe
-@engagement_bp.route("/<int:recipe_id>/like", methods=["POST"])
-def toggle_like(recipe_id):
-    user_id = get_current_user_id()
-    recipe = Recipe.query.get_or_404(recipe_id)
-
-    like = Like.query.filter_by(recipe_id=recipe.id, user_id=user_id).first()
-    if like:
-        db.session.delete(like)
-        message = "Unliked"
-    else:
-        like = Like(recipe_id=recipe.id, user_id=user_id)
-        db.session.add(like)
-        message = "Liked"
-    
+    like = Like(recipe_id=recipe_id, user_id=user_id)
+    db.session.add(like)
     db.session.commit()
-    recipe.update_popularity()
-    return jsonify({"message": message, "likes_count": recipe.likes_count()})
+
+    # Update recipe popularity if method exists
+    recipe = Recipe.query.get(recipe_id)
+    if recipe and hasattr(recipe, "update_popularity"):
+        recipe.update_popularity()
+        db.session.commit()
+
+    return jsonify({"message": "Liked!"})
 
 
-# Rate recipe
-@engagement_bp.route("/<int:recipe_id>/rate", methods=["POST"])
+# -------------------------
+# Rate a recipe
+# -------------------------
+@engagement_bp.route("/ratings/<int:recipe_id>", methods=["POST"])
 def rate_recipe(recipe_id):
-    user_id = get_current_user_id()
-    recipe = Recipe.query.get_or_404(recipe_id)
-    data = request.json
+    data = request.json or {}
+    user_id = data.get("user_id")
     stars = data.get("stars")
 
-    if not stars or stars < 1 or stars > 5:
-        return jsonify({"error": "Stars must be 1-5"}), 400
+    if not user_id or stars is None:
+        return jsonify({"error": "Missing fields"}), 400
 
-    rating = Rating.query.filter_by(recipe_id=recipe.id, user_id=user_id).first()
-    if rating:
-        rating.stars = stars
-    else:
-        rating = Rating(recipe_id=recipe.id, user_id=user_id, stars=stars)
-        db.session.add(rating)
-
+    rating = Rating(recipe_id=recipe_id, user_id=user_id, stars=stars)
+    db.session.add(rating)
     db.session.commit()
-    recipe.update_popularity()
-    return jsonify({"message": "Rating submitted", "avg_rating": recipe.avg_rating()})
 
+    # Update recipe popularity if method exists
+    recipe = Recipe.query.get(recipe_id)
+    if recipe and hasattr(recipe, "update_popularity"):
+        recipe.update_popularity()
+        db.session.commit()
 
-# Get engagement stats
-@engagement_bp.route("/<int:recipe_id>/engagement", methods=["GET"])
-def engagement_stats(recipe_id):
-    recipe = Recipe.query.get_or_404(recipe_id)
-    return jsonify({
-        "likes_count": recipe.likes_count(),
-        "avg_rating": recipe.avg_rating(),
-        "popularity_score": recipe.popularity_score
-    })
+    return jsonify({"message": "Rated!"})
+

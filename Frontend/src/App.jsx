@@ -1,34 +1,25 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { useState } from 'react';
+import HomePage from './Pages/HomePage';
+import ExplorePage from './Pages/ExplorePage';
+import CreateRecipeForm from './Pages/CreateRecipeForm';
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [page, setPage] = useState('home');
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Recipio</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div>
+      <nav className="text-center justify-center flex gap-6 p-4 bg-gray-100 font-semibold text-lg text-gray-700 border-transparent rounded-2xl">
+        <button onClick={() => setPage('home')}>Home</button>
+        <button onClick={() => setPage('explore')}>Explore</button>
+        <button onClick={() => setPage('create')}>Create Recipe</button>
+      </nav>
+
+      {page === 'home' && <HomePage />}
+      {page === 'explore' && <ExplorePage />}
+      {page === 'create' && <CreateRecipeForm />}
+    </div>
+  );
 }
 
-export default App
+export default App;
