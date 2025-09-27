@@ -95,7 +95,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-6 py-6 w-screen max-w-7xl mx-auto">
       {/* Tabs */}
       <div className="flex gap-6 border-b pb-2 mb-6">
         {tabs.map((t) => (
