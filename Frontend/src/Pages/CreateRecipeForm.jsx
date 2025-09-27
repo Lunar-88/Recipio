@@ -33,7 +33,7 @@ const CreateRecipeForm = () => {
         // 💡 FIX: Change "file" to "image" to match the Flask backend's request.files.get("image")
         formData.append("image", image); // <--- THIS IS THE CRITICAL CHANGE
 
-        const res = await fetch("http://localhost:5000/api/media/upload", {
+        const res = await fetch("https://recipio.onrender.com/api", {
           method: "POST",
           body: formData,
           // NOTE: DO NOT set Content-Type header when using FormData, 
@@ -66,7 +66,7 @@ const CreateRecipeForm = () => {
       }));
 
       // 4️⃣ Submit recipe
-      const recipeRes = await fetch("http://localhost:5000/api/recipes", {
+      const recipeRes = await fetch("https://recipio.onrender.com/api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
