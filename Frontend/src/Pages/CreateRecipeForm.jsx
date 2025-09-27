@@ -16,57 +16,49 @@ const CreateRecipeForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!title || ingredients.length === 0 || steps.length === 0) {
       alert("Please fill in title, ingredients, and steps.");
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       let mediaId = null;
-
+  
       // 1️⃣ Upload image first if exists
       if (image) {
         const formData = new FormData();
-        // 💡 FIX: Change "file" to "image" to match the Flask backend's request.files.get("image")
-        formData.append("image", image); // <--- THIS IS THE CRITICAL CHANGE
-
-        const res = await fetch("https://recipio.onrender.com/api", {
+        formData.append("image", image); // backend expects "image"
+  
+        const res = await fetch("https://recipio.onrender.com/api/media/upload", {
           method: "POST",
           body: formData,
-          // NOTE: DO NOT set Content-Type header when using FormData, 
-          // the browser sets it automatically to multipart/form-data.
         });
-
-        // The backend returns a 400 because it fails this check:
-        // file_to_upload = request.files.get("image")
-        // if not file_to_upload: return 400
-
+  
         if (!res.ok) {
           const errData = await res.json();
           throw new Error(`Image upload failed: ${errData.error}`);
         }
-        
+  
         const data = await res.json();
-        // data.id is the Cloudinary public_id
-        mediaId = data.id; 
+        mediaId = data.id; // Cloudinary public_id
       }
-
+  
       // 2️⃣ Format ingredients for backend
       const formattedIngredients = ingredients.map((i) => ({
-        ingredient: i.name, 
+        ingredient: i.name,
       }));
-
+  
       // 3️⃣ Format instructions for backend
       const formattedSteps = steps.map((desc, index) => ({
         step_number: index + 1,
         description: desc,
       }));
-
+  
       // 4️⃣ Submit recipe
-      const recipeRes = await fetch("https://recipio.onrender.com/api", {
+      const recipeRes = await fetch("https://recipio.onrender.com/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -78,20 +70,20 @@ const CreateRecipeForm = () => {
           chef_id: 1, // replace with real user ID
           ingredients: formattedIngredients,
           instructions: formattedSteps,
-          media_id: mediaId, // Cloudinary public_id
+          media_id: mediaId,
         }),
       });
-
+  
       if (!recipeRes.ok) {
         const errData = await recipeRes.json();
         throw new Error(errData.error || "Recipe submission failed");
       }
-
+  
       const recipeData = await recipeRes.json();
       alert("Recipe created successfully!");
       console.log(recipeData);
-
-      // Reset form
+  
+      // ✅ Reset form
       setTitle("");
       setDescription("");
       setPrepTime("");
@@ -100,6 +92,7 @@ const CreateRecipeForm = () => {
       setIngredients([{ name: "", quantity: "", unit: "" }]);
       setSteps([""]);
       setImage(null);
+  
     } catch (err) {
       console.error(err);
       alert(err.message || "Error submitting recipe");
@@ -107,6 +100,7 @@ const CreateRecipeForm = () => {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
