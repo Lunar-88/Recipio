@@ -29,6 +29,7 @@ def create_app():
             "http://localhost:5175",
             "http://127.0.0.1:5175",
             "https://recipio-alpha.vercel.app",
+            "https://recipioapp.vercel.app",
         ]}},
         supports_credentials=True
     )
