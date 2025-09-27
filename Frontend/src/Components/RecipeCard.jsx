@@ -23,16 +23,15 @@ const RecipeCard = ({
     if (!window.confirm("Are you sure you want to delete this recipe?")) return;
     setDeleting(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/recipes/${recipe.id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `https://recipio.onrender.com/api/recipes/${recipe.id}`,
+        {
+          method: "DELETE",
+        }
+      );
       if (!res.ok) throw new Error("Failed to delete recipe");
-      
-      // If the recipe deletion is successful, you should also delete the image from Cloudinary
-      // You would need to call an API function here that uses the DELETE /api/media/<public_id> route
-      // For now, we rely on the onDelete callback to refresh the list.
-      
-      onDelete?.(recipe.id);
+
+      onDelete?.(recipe.id); // refresh list
     } catch (err) {
       alert(err.message);
     } finally {
@@ -43,9 +42,12 @@ const RecipeCard = ({
   const handleLike = async () => {
     setLiking(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/recipes/${recipe.id}/like`, {
-        method: "POST",
-      });
+      const res = await fetch(
+        `https://recipio.onrender.com/api/recipes/${recipe.id}/like`,
+        {
+          method: "POST",
+        }
+      );
       if (!res.ok) throw new Error("Failed to like recipe");
       const data = await res.json();
       setLikes(data.likes);
@@ -55,6 +57,7 @@ const RecipeCard = ({
       setLiking(false);
     }
   };
+
 
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
