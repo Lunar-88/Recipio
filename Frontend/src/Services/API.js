@@ -1,5 +1,6 @@
 // API.js
-const API_BASE = 'http://localhost:5000/api'; // Flask backend
+// API.js
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
  * Utility to build URLs with query parameters
